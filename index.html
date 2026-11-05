@@ -152,6 +152,31 @@ table.calc tr:nth-child(even) td{background:#f7f8fa}
 .foot{color:var(--muted);font-size:12px;text-align:center;padding:24px 0}
 .warnbox{background:#fff8f0;border:1px solid #e9cfa6;color:#7a5618;padding:10px 12px;border-radius:5px;font-size:12.5px;margin-top:10px}
 @media print{body *{visibility:hidden}.page,.page *{visibility:visible}.page{box-shadow:none;margin:0}}
+
+/* Compliance calendar */
+.caltools{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:12px}
+.caltools .fld{display:flex;flex-direction:column}
+.caltools label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.caltools select,.caltools input{padding:8px 10px;border:1px solid var(--rule);border-radius:5px;font:inherit;background:#fff}
+.caltools input{min-width:230px}
+.calcount{margin-left:auto;color:var(--muted);font-size:13px;align-self:center}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin:4px 0 12px}
+.legend .k{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink)}
+.legend .sw{width:13px;height:13px;border-radius:3px}
+.caltablewrap{overflow:auto;border:1px solid var(--rule);border-radius:6px;max-height:70vh}
+table.cal{border-collapse:collapse;width:100%;font-size:12.5px;min-width:1080px}
+table.cal th,table.cal td{border-bottom:1px solid #eef1f5;padding:8px 10px;text-align:left;vertical-align:top}
+table.cal thead th{position:sticky;top:0;background:var(--navy);color:#fff;z-index:2;font-weight:600;white-space:nowrap}
+table.cal tbody tr:hover{background:#f6f9fd}
+table.cal td.c-form,table.cal td.c-due{font-weight:600;white-space:nowrap}
+table.cal td.c-due{color:var(--navy)}
+table.cal td small{color:var(--muted)}
+.catbadge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
+details.notes{margin-top:14px;border:1px solid var(--rule);border-radius:6px;background:#fff}
+details.notes summary{cursor:pointer;padding:10px 14px;font-weight:600;color:var(--navy)}
+details.notes .nbody{padding:0 16px 14px;font-size:12.5px;color:var(--ink)}
+details.notes ol{padding-left:20px}details.notes li{margin:6px 0;text-align:left}
+
 </style>
 </head>
 <body>
@@ -172,6 +197,7 @@ table.calc tr:nth-child(even) td{background:#f7f8fa}
   <button class="tab active" data-tab="data">Company Data</button>
   <button class="tab" data-tab="docs">Generate Documents</button>
   <button class="tab" data-tab="calc">Compliance Calculator</button>
+  <button class="tab" data-tab="cal">Compliance Calendar</button>
 </div></nav>
 
 <main><div class="wrap">
@@ -271,6 +297,26 @@ table.calc tr:nth-child(even) td{background:#f7f8fa}
       <tr><td class="na" colspan="3">Fill the dates and press Calculate.</td></tr>
     </tbody></table></div>
     <div class="hint" style="margin-top:8px">Calendar-day calculations. UDIN = 60 days from signing (both ends inclusive, i.e. +59). Verify against the entity's Articles / LLP Agreement and the live MCA position before filing.</div>
+  </div>
+</section>
+
+
+<!-- ===================== CALENDAR ===================== -->
+<section class="panel" id="panel-cal">
+  <div class="card">
+    <h2 class="sec">Annual Statutory Compliance Calendar — India</h2>
+    <div style="font-size:12.5px;color:var(--muted);margin:-6px 0 14px">ROC/MCA · Income Tax · GST · PF/ESI · Labour · SEBI · RBI/FEMA &nbsp;|&nbsp; MS Associates, Coimbatore</div>
+    <div class="caltools">
+      <div class="fld"><label>Category</label><select class="i" id="cal_cat"></select></div>
+      <div class="fld"><label>Periodicity</label><select class="i" id="cal_per"></select></div>
+      <div class="fld"><label>Search — activity / form / section</label><input id="cal_q" placeholder="e.g. GSTR-9, DIR-3, auditor"></div>
+      <button class="btn brass" id="cal_xls">Export to Excel</button>
+      <span class="calcount" id="cal_count"></span>
+    </div>
+    <div class="legend" id="cal_legend"></div>
+    <div class="caltablewrap"><table class="cal" id="cal_tbl"></table></div>
+    <details class="notes"><summary>Legend &amp; notes / caveats</summary><div class="nbody" id="cal_notes"></div></details>
+    <div class="hint" style="margin-top:8px">A practice-management aid, not legal advice. Entity-specific applicability and thresholds must be checked each year against current MCA/CBDT/GSTN/SEBI/RBI notifications.</div>
   </div>
 </section>
 
@@ -803,7 +849,32 @@ var WORD_CSS="@page{size:A4;margin:2cm}body{font-family:'Times New Roman',serif;
 function downloadDoc(){
   if(!lastHTML){generate();}
   var fn=(C.name?C.name.replace(/[^\w]+/g,'_'):'Document')+'_'+curDoc.id;
-  var pre="<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>"+WORD_CSS+"</style></head><body>";
+  var pre="<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>"+WORD_CSS+"
+/* Compliance calendar */
+.caltools{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:12px}
+.caltools .fld{display:flex;flex-direction:column}
+.caltools label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.caltools select,.caltools input{padding:8px 10px;border:1px solid var(--rule);border-radius:5px;font:inherit;background:#fff}
+.caltools input{min-width:230px}
+.calcount{margin-left:auto;color:var(--muted);font-size:13px;align-self:center}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin:4px 0 12px}
+.legend .k{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink)}
+.legend .sw{width:13px;height:13px;border-radius:3px}
+.caltablewrap{overflow:auto;border:1px solid var(--rule);border-radius:6px;max-height:70vh}
+table.cal{border-collapse:collapse;width:100%;font-size:12.5px;min-width:1080px}
+table.cal th,table.cal td{border-bottom:1px solid #eef1f5;padding:8px 10px;text-align:left;vertical-align:top}
+table.cal thead th{position:sticky;top:0;background:var(--navy);color:#fff;z-index:2;font-weight:600;white-space:nowrap}
+table.cal tbody tr:hover{background:#f6f9fd}
+table.cal td.c-form,table.cal td.c-due{font-weight:600;white-space:nowrap}
+table.cal td.c-due{color:var(--navy)}
+table.cal td small{color:var(--muted)}
+.catbadge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
+details.notes{margin-top:14px;border:1px solid var(--rule);border-radius:6px;background:#fff}
+details.notes summary{cursor:pointer;padding:10px 14px;font-weight:600;color:var(--navy)}
+details.notes .nbody{padding:0 16px 14px;font-size:12.5px;color:var(--ink)}
+details.notes ol{padding-left:20px}details.notes li{margin:6px 0;text-align:left}
+
+</style></head><body>";
   var blob=new Blob(['\ufeff'+pre+lastHTML+'</body></html>'],{type:'application/msword'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn+'.doc'; a.click();
   setTimeout(function(){URL.revokeObjectURL(a.href);},500); toast('Word file downloaded.');
@@ -898,6 +969,79 @@ $('c_run').addEventListener('click',runCalc);
 $('c_xls').addEventListener('click',exportCalc);
 
 renderCatalog();
+
+/* ============================ COMPLIANCE CALENDAR ============================ */
+var CATCOLOR={
+ 'ROC/MCA':{bg:'#E7ECF6',fg:'#1F3A63',bar:'#1F3A63'},
+ 'Income Tax':{bg:'#E3F2EA',fg:'#1E7A52',bar:'#1E7A52'},
+ 'GST':{bg:'#EEE6F7',fg:'#6B3FA0',bar:'#6B3FA0'},
+ 'PF/ESI':{bg:'#FBEBDA',fg:'#B2630F',bar:'#B2630F'},
+ 'Labour':{bg:'#F6EFD9',fg:'#8A6B22',bar:'#8A6B22'},
+ 'SEBI':{bg:'#FBE6E3',fg:'#A5342A',bar:'#A5342A'},
+ 'RBI/FEMA':{bg:'#E1F0F2',fg:'#2A6E7A',bar:'#2A6E7A'}
+};
+var CALDATA=[{"sno": "1", "cat": "ROC/MCA", "act": "Annual Return", "law": "Companies Act, 2013", "sec": "Sec 92 r/w Rule 11", "form": "MGT-7 (MGT-7A: OPC/Small Co.)", "period": "Annual", "due": "Within 60 days of AGM (≈28/29 Nov for a 30-Sep AGM)", "penalty": "Addl. filing fee ₹100/day (Sec 403, no cap); penalty u/s 92(5): ₹10,000 + ₹100/day — max ₹2,00,000 (company) / ₹50,000 (officer)", "remarks": "MGT-8 certification by PCS if paid-up ≥ ₹10 cr or turnover ≥ ₹50 cr"}, {"sno": "2", "cat": "ROC/MCA", "act": "Financial Statements", "law": "Companies Act, 2013", "sec": "Sec 137 r/w Rule 12", "form": "AOC-4 / AOC-4 XBRL / AOC-4 CFS", "period": "Annual", "due": "Within 30 days of AGM (≈29/30 Oct)", "penalty": "Addl. fee ₹100/day; penalty u/s 137(3): company ₹10,000 + ₹100/day (max ₹2,00,000); MD/CFO/Director ₹10,000 + ₹100/day (max ₹50,000)", "remarks": "XBRL for listed/specified; CFS where subsidiaries exist"}, {"sno": "3", "cat": "ROC/MCA", "act": "Holding of AGM", "law": "Companies Act, 2013", "sec": "Sec 96", "form": "Convened by notice u/s 101", "period": "Annual", "due": "Within 6 months of FY-end (by 30 Sep); first AGM within 9 months of first FY-end", "penalty": "Sec 99: fine up to ₹1,00,000 + ₹5,000/day continuing", "remarks": "Tribunal may extend by up to 3 months"}, {"sno": "4", "cat": "ROC/MCA", "act": "Director KYC", "law": "Companies Act, 2013", "sec": "Sec 153 r/w Rule 12A", "form": "DIR-3 KYC / DIR-3 KYC-WEB", "period": "Annual", "due": "By 30 September every year", "penalty": "₹5,000 per DIN; DIN marked 'Deactivated' until filed", "remarks": "WEB form if no change; e-form if details change"}, {"sno": "5", "cat": "ROC/MCA", "act": "Return of Deposits / exempted deposits", "law": "Companies Act, 2013", "sec": "Sec 73 r/w Rule 16", "form": "DPT-3", "period": "Annual", "due": "By 30 June (for year ended 31 March)", "penalty": "Sec 76A: company fine ≥ ₹1 cr or 2x deposits (max ₹10 cr); officer fine + imprisonment (Rule 21)", "remarks": "Covers deposits + transactions not treated as deposits"}, {"sno": "6", "cat": "ROC/MCA", "act": "Outstanding dues to MSMEs (> 45 days)", "law": "Companies Act, 2013", "sec": "Sec 405", "form": "MSME-1 (Form I)", "period": "Half-yearly", "due": "By 30 April (Oct–Mar) & 31 October (Apr–Sep)", "penalty": "Sec 405(4): penalty up to ₹25,000 (company); officer ₹25,000–₹3,00,000", "remarks": "Return of outstanding dues to micro & small enterprises"}, {"sno": "7", "cat": "ROC/MCA", "act": "Commencement of Business", "law": "Companies Act, 2013", "sec": "Sec 10A r/w Rule 23A", "form": "INC-20A", "period": "One-time (event)", "due": "Within 180 days of incorporation", "penalty": "Company ₹50,000; every officer ₹1,000/day (max ₹1,00,000)", "remarks": "Subscription money must be received before filing"}, {"sno": "8", "cat": "ROC/MCA", "act": "Appointment of Auditor", "law": "Companies Act, 2013", "sec": "Sec 139 r/w Rule 4", "form": "ADT-1", "period": "Event (AGM cycle)", "due": "Within 15 days of the AGM in which appointed", "penalty": "Addl. fee + adjudication penalty", "remarks": "Auditor appointed for a 5-year term"}, {"sno": "9", "cat": "ROC/MCA", "act": "Significant Beneficial Owner", "law": "Companies Act, 2013", "sec": "Sec 90 r/w SBO Rules", "form": "BEN-2 (on BEN-1)", "period": "Event", "due": "Within 30 days of receipt of BEN-1", "penalty": "Company ₹1,00,000 + ₹500/day; officer similar", "remarks": ""}, {"sno": "10", "cat": "ROC/MCA", "act": "Board Meetings (min. 4/yr, gap ≤120 days)", "law": "Companies Act, 2013", "sec": "Sec 173", "form": "Minutes u/s 118", "period": "Quarterly / ongoing", "due": "At least 4 Board meetings each year; max gap 120 days", "penalty": "Penalty u/s 173 / 118", "remarks": "OPC / small / dormant: min. 2 meetings"}, {"sno": "11", "cat": "ROC/MCA", "act": "Directors' disclosure of interest", "law": "Companies Act, 2013", "sec": "Sec 184 r/w Rule 9", "form": "MBP-1 (to Board)", "period": "Annual + on change", "due": "At first Board meeting of each FY", "penalty": "Sec 184(4): imprisonment up to 1 yr / fine up to ₹1,00,000", "remarks": "Kept in company records; not filed with ROC"}, {"sno": "12", "cat": "ROC/MCA", "act": "Non-disqualification disclosure", "law": "Companies Act, 2013", "sec": "Sec 164(2) r/w Rule 14", "form": "DIR-8 (to company)", "period": "Annual", "due": "At first Board meeting of each FY", "penalty": "—", "remarks": "Internal record"}, {"sno": "13", "cat": "ROC/MCA", "act": "CSR reporting", "law": "Companies Act, 2013", "sec": "Sec 135 r/w Rule 12 (Accounts Rules)", "form": "CSR-2", "period": "Annual", "due": "As notified by MCA (recent FYs: addendum to AOC-4 / separately by notified date)", "penalty": "Sec 134(8)/135(7) CSR-default penalties", "remarks": "VERIFY current-year notified due date on MCA portal"}, {"sno": "14", "cat": "ROC/MCA", "act": "Unspent CSR (ongoing project)", "law": "Companies Act, 2013", "sec": "Sec 135(6)", "form": "Transfer + Board Report disclosure", "period": "Annual", "due": "Transfer to Unspent CSR A/c within 30 days of FY-end (by 30 Apr)", "penalty": "Sec 135(7): company 2x unspent or ₹1 cr (lower); officer 1/10th or ₹2 lakh (lower)", "remarks": "Non-ongoing unspent → Sch VII Fund within 6 months"}, {"sno": "15", "cat": "ROC/MCA", "act": "LLP Annual Return", "law": "LLP Act, 2008", "sec": "Sec 35 r/w Rule 25", "form": "Form 11", "period": "Annual", "due": "By 30 May (within 60 days of FY-end)", "penalty": "₹100 per day — no maximum", "remarks": ""}, {"sno": "16", "cat": "ROC/MCA", "act": "LLP Statement of Account & Solvency", "law": "LLP Act, 2008", "sec": "Sec 34 r/w Rule 24", "form": "Form 8", "period": "Annual", "due": "By 30 October (within 30 days from end of 6 months of FY-end)", "penalty": "₹100 per day — no maximum", "remarks": "Audit if turnover > ₹40 L or contribution > ₹25 L"}, {"sno": "17", "cat": "Income Tax", "act": "TDS deposit (non-govt deductor)", "law": "Income-tax Act, 2025", "sec": "Sec 393 (erstwhile Ch. XVII-B)", "form": "e-payment / challan", "period": "Monthly", "due": "By 7th of following month (March deductions by 30 April)", "penalty": "Interest 1% p.m. (not deducted) / 1.5% p.m. (deducted not paid); penalty u/s 271C-eqv.", "remarks": "New Act w.e.f. 1 Apr 2026; 1961 Act for earlier periods"}, {"sno": "18", "cat": "Income Tax", "act": "TDS Return — Salary", "law": "Income-tax Act, 2025", "sec": "Sec 392 / 397 r/w I-T Rules, 2026", "form": "Form 138 (was 24Q)", "period": "Quarterly", "due": "Q1 31 Jul · Q2 31 Oct · Q3 31 Jan · Q4 31 May", "penalty": "Late fee ₹200/day (max = TDS) u/s 234E-eqv.; penalty ₹10,000–₹1,00,000 u/s 271H-eqv.", "remarks": ""}, {"sno": "19", "cat": "Income Tax", "act": "TDS Return — Resident Non-salary", "law": "Income-tax Act, 2025", "sec": "Sec 393 / 397 r/w Rules, 2026", "form": "Form 140 (was 26Q)", "period": "Quarterly", "due": "Q1 31 Jul · Q2 31 Oct · Q3 31 Jan · Q4 31 May", "penalty": "As above", "remarks": ""}, {"sno": "20", "cat": "Income Tax", "act": "TDS Return — Non-resident payments", "law": "Income-tax Act, 2025", "sec": "Sec 393 / 397 r/w Rules, 2026", "form": "Form 144 (was 27Q)", "period": "Quarterly", "due": "Q1 31 Jul · Q2 31 Oct · Q3 31 Jan · Q4 31 May", "penalty": "As above", "remarks": ""}, {"sno": "21", "cat": "Income Tax", "act": "TCS Return", "law": "Income-tax Act, 2025", "sec": "Sec 394 / 397(3)(b) r/w Rules, 2026", "form": "Form 143 (was 27EQ)", "period": "Quarterly", "due": "Official Form 143 guidance: 31 Jul · 31 Oct · 31 Jan · 31 May. ⚠ Many calendars still cite legacy 15 Jul/15 Oct/15 Jan/15 May", "penalty": "Late fee ₹200/day + penalty ₹10,000–₹1,00,000", "remarks": "VERIFY against final I-T Rules, 2026 — sources conflict (15th vs month-end)"}, {"sno": "22", "cat": "Income Tax", "act": "TDS Certificate — Salary", "law": "Income-tax Act, 2025", "sec": "Sec 395-eqv.", "form": "Form 130 (was Form 16)", "period": "Annual", "due": "By 15 June following FY", "penalty": "₹100/day (max = TDS) u/s 272A-eqv.", "remarks": ""}, {"sno": "23", "cat": "Income Tax", "act": "TDS Certificate — Non-salary", "law": "Income-tax Act, 2025", "sec": "Sec 395-eqv.", "form": "Form 131 (was Form 16A)", "period": "Quarterly", "due": "Within 15 days of TDS return due date", "penalty": "₹100/day (max = TDS)", "remarks": ""}, {"sno": "24", "cat": "Income Tax", "act": "Income Tax Return — non-audit", "law": "Income-tax Act, 2025", "sec": "erstwhile Sec 139(1)", "form": "Applicable ITR form", "period": "Annual", "due": "31 July of AY", "penalty": "Late fee u/s 234F-eqv.: ₹5,000 (₹1,000 if income ≤ ₹5 L); interest 234A/B/C", "remarks": "Confirm exact new-Act section numbers"}, {"sno": "25", "cat": "Income Tax", "act": "Income Tax Return — audit cases", "law": "Income-tax Act, 2025", "sec": "erstwhile Sec 139(1)", "form": "Applicable ITR form", "period": "Annual", "due": "31 October of AY", "penalty": "As above", "remarks": ""}, {"sno": "26", "cat": "Income Tax", "act": "Income Tax Return — transfer pricing", "law": "Income-tax Act, 2025", "sec": "erstwhile Sec 92E / 139", "form": "ITR + Form 3CEB", "period": "Annual", "due": "30 November of AY", "penalty": "As above; 271BA for 3CEB default", "remarks": ""}, {"sno": "27", "cat": "Income Tax", "act": "Tax Audit Report", "law": "Income-tax Act, 2025", "sec": "erstwhile Sec 44AB", "form": "Form 3CA/3CB + 3CD", "period": "Annual", "due": "By 30 September of AY", "penalty": "Penalty u/s 271B-eqv.: 0.5% of turnover, max ₹1,50,000", "remarks": "Above turnover / gross-receipt thresholds"}, {"sno": "28", "cat": "Income Tax", "act": "Advance Tax", "law": "Income-tax Act, 2025", "sec": "erstwhile Sec 208–211", "form": "Challan 280", "period": "Quarterly", "due": "15 Jun (15%) · 15 Sep (45%) · 15 Dec (75%) · 15 Mar (100%)", "penalty": "Interest u/s 234B & 234C-eqv.", "remarks": ""}, {"sno": "29", "cat": "Income Tax", "act": "Statement of Financial Transactions", "law": "Income-tax Act, 2025", "sec": "erstwhile Sec 285BA", "form": "Form 61A", "period": "Annual", "due": "By 31 May following FY", "penalty": "₹500–₹1,000/day u/s 271FA-eqv.", "remarks": "Specified reporting entities"}, {"sno": "30", "cat": "Income Tax", "act": "Foreign remittance certificate", "law": "Income-tax Act, 2025", "sec": "erstwhile Sec 195(6)", "form": "Form 15CA / 15CB", "period": "Event", "due": "Before remittance", "penalty": "₹1,00,000 u/s 271-I-eqv.", "remarks": ""}, {"sno": "31", "cat": "GST", "act": "Outward supplies", "law": "CGST Act, 2017", "sec": "Sec 37 r/w Rule 59", "form": "GSTR-1", "period": "Monthly / Qtrly (QRMP)", "due": "Monthly: 11th of next month · QRMP: 13th of month after quarter", "penalty": "Late fee ₹50/day (₹20 nil), subject to cap; interest on linked tax", "remarks": "IFF optional for QRMP by 13th"}, {"sno": "32", "cat": "GST", "act": "Summary return & tax payment", "law": "CGST Act, 2017", "sec": "Sec 39 r/w Rule 61", "form": "GSTR-3B", "period": "Monthly / Qtrly (QRMP)", "due": "Monthly: 20th · QRMP: 22nd or 24th (State-based)", "penalty": "Late fee ₹50/day (₹20 nil), cap ₹5,000; interest 18% p.a. on tax (24% on excess ITC)", "remarks": ""}, {"sno": "33", "cat": "GST", "act": "Non-resident taxable person", "law": "CGST Act, 2017", "sec": "Sec 39(5) r/w Rule 63", "form": "GSTR-5", "period": "Monthly", "due": "13th of next month (or within 7 days of registration expiry)", "penalty": "Late fee + interest", "remarks": ""}, {"sno": "34", "cat": "GST", "act": "OIDAR services", "law": "IGST Act, 2017", "sec": "Sec 14", "form": "GSTR-5A", "period": "Monthly", "due": "20th of next month", "penalty": "Late fee + interest", "remarks": ""}, {"sno": "35", "cat": "GST", "act": "Input Service Distributor", "law": "CGST Act, 2017", "sec": "Sec 39(4) r/w Rule 65", "form": "GSTR-6", "period": "Monthly", "due": "13th of next month", "penalty": "₹50/day (capped per return period)", "remarks": "ISD mandatory for common-ITC distribution"}, {"sno": "36", "cat": "GST", "act": "TDS under GST", "law": "CGST Act, 2017", "sec": "Sec 51 r/w Rule 66", "form": "GSTR-7", "period": "Monthly", "due": "10th of next month", "penalty": "Late fee + interest", "remarks": "Govt / notified deductors"}, {"sno": "37", "cat": "GST", "act": "TCS under GST (e-commerce)", "law": "CGST Act, 2017", "sec": "Sec 52 r/w Rule 67", "form": "GSTR-8", "period": "Monthly", "due": "10th of next month", "penalty": "Late fee + interest", "remarks": "E-commerce operators"}, {"sno": "38", "cat": "GST", "act": "Composition — tax payment", "law": "CGST Act, 2017", "sec": "Sec 39(2) r/w Rule 62", "form": "CMP-08", "period": "Quarterly", "due": "18th of month after quarter", "penalty": "Interest 18%; late fee", "remarks": ""}, {"sno": "39", "cat": "GST", "act": "Composition — annual return", "law": "CGST Act, 2017", "sec": "Sec 44 r/w Rule 62", "form": "GSTR-4", "period": "Annual", "due": "30 June following FY", "penalty": "Late fee ₹50/day, max ₹2,000 (nil ₹500)", "remarks": ""}, {"sno": "40", "cat": "GST", "act": "Annual Return", "law": "CGST Act, 2017", "sec": "Sec 44 r/w Rule 80", "form": "GSTR-9", "period": "Annual", "due": "31 December following FY", "penalty": "Late fee ₹200/day, capped at 0.5% of turnover in State/UT", "remarks": "Optional if AATO ≤ ₹2 cr"}, {"sno": "41", "cat": "GST", "act": "Reconciliation Statement (self-certified)", "law": "CGST Act, 2017", "sec": "Sec 44 r/w Rule 80(3)", "form": "GSTR-9C", "period": "Annual", "due": "31 December following FY", "penalty": "Part of GSTR-9 late-fee regime", "remarks": "Mandatory if AATO > ₹5 cr"}, {"sno": "42", "cat": "GST", "act": "Job-work goods movement", "law": "CGST Act, 2017", "sec": "Sec 143 r/w Rule 45", "form": "ITC-04", "period": "Half-yearly / Annual", "due": "AATO > ₹5 cr: half-yearly (25 Oct & 25 Apr); ≤ ₹5 cr: annual (25 Apr)", "penalty": "General penalty Sec 125", "remarks": ""}, {"sno": "43", "cat": "GST", "act": "LUT for exports without IGST", "law": "CGST Act, 2017", "sec": "Rule 96A", "form": "RFD-11 (LUT)", "period": "Annual", "due": "Before start of FY / before first export", "penalty": "Must pay IGST + interest if not furnished", "remarks": "Renew each FY"}, {"sno": "44", "cat": "PF/ESI", "act": "EPF — contribution & return (ECR)", "law": "EPF & MP Act, 1952", "sec": "Para 38 of EPF Scheme", "form": "ECR (challan-cum-return)", "period": "Monthly", "due": "By 15th of following month", "penalty": "Interest 12% p.a. (Sec 7Q) + damages 5%–25% p.a. (Sec 14B)", "remarks": "Consolidated annual (3A/6A) subsumed in ECR"}, {"sno": "45", "cat": "PF/ESI", "act": "EPF — International Workers return", "law": "EPF & MP Act, 1952", "sec": "Para 36", "form": "IW-1", "period": "Monthly", "due": "By 15th of following month", "penalty": "As above", "remarks": ""}, {"sno": "46", "cat": "PF/ESI", "act": "ESI — contribution", "law": "ESI Act, 1948", "sec": "Reg 29 & 31", "form": "Online challan", "period": "Monthly", "due": "By 15th of following month", "penalty": "Interest 12% p.a. + damages 5%–25% (Reg 31A/31C)", "remarks": ""}, {"sno": "47", "cat": "PF/ESI", "act": "ESI — Return of Contributions", "law": "ESI Act, 1948", "sec": "Reg 26", "form": "Return via ESIC portal", "period": "Half-yearly (legacy)", "due": "Historically 11 May & 11 Nov; now largely via monthly online contributions", "penalty": "Prosecution u/s 85 for default", "remarks": "VERIFY current ESIC portal practice"}, {"sno": "48", "cat": "Labour", "act": "Professional Tax — Tamil Nadu (employer)", "law": "TN Municipalities / Corporations PT Rules", "sec": "State PT law", "form": "Form / challan (local body)", "period": "Half-yearly", "due": "TN: by 30 September (Apr–Sep) & 31 March (Oct–Mar)", "penalty": "Penalty & interest per State Act", "remarks": "State / municipality-specific — confirm Coimbatore local-body rule"}, {"sno": "49", "cat": "Labour", "act": "Labour Welfare Fund — Tamil Nadu", "law": "TN Labour Welfare Fund Act, 1972", "sec": "—", "form": "LWF contribution", "period": "Annual", "due": "By 31 January", "penalty": "Penalty per Act", "remarks": "Employee + employer contribution (TN rates)"}, {"sno": "50", "cat": "SEBI", "act": "Financial Results", "law": "SEBI (LODR) Regs, 2015", "sec": "Reg 33", "form": "Results + outcome to SE", "period": "Qtrly / Annual", "due": "Quarterly within 45 days of quarter-end; annual (audited) within 60 days of FY-end", "penalty": "SEBI SOP-circular fines; Sec 15A SEBI Act up to ₹1 lakh/day (max ₹1 cr)", "remarks": "Applies only to listed entities"}, {"sno": "51", "cat": "SEBI", "act": "Shareholding Pattern", "law": "SEBI (LODR) Regs, 2015", "sec": "Reg 31", "form": "Filing to SE", "period": "Quarterly", "due": "Within 21 days of end of each quarter", "penalty": "SEBI SOP fines (₹/day)", "remarks": ""}, {"sno": "52", "cat": "SEBI", "act": "Corporate Governance Report", "law": "SEBI (LODR) Regs, 2015", "sec": "Reg 27(2)", "form": "CG Report to SE", "period": "Quarterly", "due": "Within 21 days of end of each quarter", "penalty": "SEBI SOP fines", "remarks": ""}, {"sno": "53", "cat": "SEBI", "act": "Statement of Investor Grievances", "law": "SEBI (LODR) Regs, 2015", "sec": "Reg 13(3)", "form": "Filing to SE", "period": "Quarterly", "due": "Within 21 days of end of each quarter", "penalty": "SEBI SOP fines", "remarks": ""}, {"sno": "54", "cat": "SEBI", "act": "Reconciliation of Share Capital Audit", "law": "SEBI (D&P) Regs, 2018", "sec": "Reg 76", "form": "RSCA report (by PCS)", "period": "Quarterly", "due": "Within 30 days of end of each quarter", "penalty": "SEBI SOP fines", "remarks": ""}, {"sno": "55", "cat": "SEBI", "act": "Annual Secretarial Compliance Report", "law": "SEBI (LODR) Regs, 2015", "sec": "Reg 24A r/w circular", "form": "ASCR (by PCS)", "period": "Annual", "due": "Within 60 days of FY-end", "penalty": "SEBI SOP fines", "remarks": "Secretarial Audit (MR-3) also filed with annual report"}, {"sno": "56", "cat": "SEBI", "act": "Annual Report to Stock Exchange", "law": "SEBI (LODR) Regs, 2015", "sec": "Reg 34", "form": "Annual Report", "period": "Annual", "due": "Within 21 working days of AGM (+ website hosting)", "penalty": "SEBI SOP fines", "remarks": ""}, {"sno": "57", "cat": "SEBI", "act": "Listing Fees", "law": "SEBI (LODR) Regs, 2015", "sec": "Reg 14", "form": "Payment to SE", "period": "Annual", "due": "By 30 April each year (as billed by SE)", "penalty": "Securities may be suspended; fines", "remarks": ""}, {"sno": "58", "cat": "SEBI", "act": "Large Corporate — borrowing disclosure", "law": "SEBI (LODR) + circular", "sec": "Reg 15(1A) / circular", "form": "Initial & annual disclosure", "period": "Annual", "due": "Within 45 days / as per circular", "penalty": "SEBI penalties", "remarks": "VERIFY current LC framework (revised)"}, {"sno": "59", "cat": "SEBI", "act": "Compliance certificate — RTA/share transfer", "law": "SEBI (LODR) Regs, 2015", "sec": "Reg 7(3)", "form": "Certificate to SE", "period": "Annual", "due": "Within 30 days of FY-end", "penalty": "SEBI SOP fines", "remarks": ""}, {"sno": "60", "cat": "SEBI", "act": "Promoter annual shareholding disclosure", "law": "SEBI (SAST) Regs, 2011", "sec": "Reg 30(1)/(2)", "form": "Disclosure to company & SE", "period": "Annual", "due": "Within 7 working days of FY-end", "penalty": "Sec 15A SEBI Act penalties", "remarks": "Holders ≥ 25% & promoters"}, {"sno": "61", "cat": "SEBI", "act": "Promoter encumbrance declaration", "law": "SEBI (SAST) Regs, 2011", "sec": "Reg 31(4)", "form": "Declaration to SE", "period": "Annual", "due": "Within 7 working days of FY-end", "penalty": "SEBI penalties", "remarks": ""}, {"sno": "62", "cat": "SEBI", "act": "Related Party Transactions disclosure", "law": "SEBI (LODR) Regs, 2015", "sec": "Reg 23 & 27", "form": "RPT disclosure to SE", "period": "Half-yearly", "due": "Within 15 days of publication of standalone & consolidated results", "penalty": "SEBI SOP fines", "remarks": "Prior Audit Committee approval required"}, {"sno": "63", "cat": "RBI/FEMA", "act": "Foreign Liabilities & Assets return", "law": "FEMA, 1999", "sec": "A.P. (Dir Series) circular r/w FEM Regs", "form": "FLA Return", "period": "Annual", "due": "By 15 July (position as on 31 March); revise with audited figures by 30 Sep", "penalty": "Late Submission Fee (LSF) formula; Sec 13 up to 3x amount or ₹2 lakh + ₹5,000/day", "remarks": "RBI FLAIR portal; if any outstanding FDI/ODI"}, {"sno": "64", "cat": "RBI/FEMA", "act": "Annual Performance Report (ODI)", "law": "FEMA, 1999", "sec": "FEM (Overseas Investment) Rules & Regs, 2022", "form": "Form APR (ODI Part II)", "period": "Annual", "due": "By 31 December each year", "penalty": "LSF; Sec 13 FEMA penalties", "remarks": "Auditor-certified; via AD bank / OID portal"}, {"sno": "65", "cat": "RBI/FEMA", "act": "External Commercial Borrowing — return", "law": "FEMA, 1999", "sec": "FEM (Borrowing & Lending) Regs", "form": "Form ECB-2", "period": "Monthly", "due": "By 7th of the following month (each month of loan)", "penalty": "LSF; Sec 13 FEMA penalties", "remarks": "Via AD Category-I bank"}, {"sno": "66", "cat": "RBI/FEMA", "act": "Reporting of FDI (shares to non-resident)", "law": "FEMA, 1999", "sec": "FEM (Non-Debt Instruments) Rules, 2019", "form": "Form FC-GPR", "period": "Event", "due": "Within 30 days of allotment", "penalty": "LSF; Sec 13 FEMA penalties", "remarks": "FIRMS / Single Master Form portal"}, {"sno": "67", "cat": "RBI/FEMA", "act": "Transfer of shares (resident ↔ non-resident)", "law": "FEMA, 1999", "sec": "FEM (NDI) Rules, 2019", "form": "Form FC-TRS", "period": "Event", "due": "Within 60 days of transfer / receipt of funds", "penalty": "LSF; Sec 13 FEMA penalties", "remarks": "FIRMS / SMF portal"}, {"sno": "68", "cat": "RBI/FEMA", "act": "Software / services export declaration", "law": "FEMA, 1999", "sec": "FEM (Export of Goods & Services) Regs", "form": "SOFTEX", "period": "Monthly", "due": "As per STPI / AD-bank timeline", "penalty": "Sec 13 FEMA penalties", "remarks": "For software exporters"}];
+var CALNOTES=["ANNUAL STATUTORY COMPLIANCE CALENDAR — INDIA", "MS Associates, Practising Company Secretaries, Coimbatore  ·  S. Mohanraj, ACS", "How to use", "• The 'Compliance Calendar' tab is one filterable master list. Use the column-header filter (row 3) to view a single Category, Periodicity, or Form.", "• Columns: S.No · Category · Compliance/Activity · Act/Rules/Regulation · Section/Rule/Reg. · Form · Periodicity · Due Date (recurring every year) · Penalty/Consequence · Remarks.", "• Due dates are stated as the recurring annual pattern (e.g. '15 July every year', 'within 60 days of AGM'). Where a date falls on a holiday, the next working day applies.", "Category colour key", "ROC / MCA — Companies Act, 2013 & LLP Act, 2008", "Income Tax — TDS / TCS / ITR (Income-tax Act, 2025 w.e.f. 01-Apr-2026)", "GST — CGST/IGST Act, 2017 & Rules", "PF / ESI / Labour (EPF Act 1952, ESI Act 1948, State PT & LWF)", "SEBI — LODR / SAST / D&P Regulations (listed entities only)", "RBI / FEMA — FEMA, 1999 & allied Rules/Regulations", "Important notes & caveats", "1. New Income-tax Act, 2025 + Income-tax Rules, 2026 are effective from 01-Apr-2026 (Tax Year 2026-27). TDS/TCS return forms were renumbered: 24Q→138, 26Q→140, 27Q→144, 27EQ→143; certificates 16→130, 16A→131. For FY 2025-26 and earlier, the Income-tax Act, 1961 and old forms apply.", "2. TCS return (Form 143) due date is flagged (highlighted): the official Form-143 guidance note shows 31 Jul/31 Oct/31 Jan/31 May, but several practitioner calendars still cite the legacy 15th. Confirm against the final notified rule before building it into automation.", "3. ITR and Tax-Audit section references are shown as the familiar 1961-Act sections (139, 44AB, etc.) pending confirmation of the exact Income-tax Act, 2025 section numbers — verify before citing in filings.", "4. SEBI rows apply only to listed entities. SEBI monetary penalties follow the SEBI 'SOP for non-compliance' circular (fixed per-day fines) and Sec 15A of the SEBI Act (up to ₹1 lakh/day, max ₹1 crore).", "5. Professional Tax and Labour Welfare Fund are State/local-body specific — rows reflect Tamil Nadu; confirm the Coimbatore local-body rule.", "6. ROC due dates are driven by the AGM date; the '≈' dates assume a 30-Sep AGM for a 31-Mar year-end. FEMA FLA/APR and ECB-2 apply only where FDI/ODI/ECB exists.", "7. This calendar is a practice-management aid, not legal advice, and does not replace the bare Acts/Rules or current MCA/CBDT/GSTN/SEBI/RBI notifications. Entity-specific applicability and thresholds must be checked each year."];
+function perMatch(p,sel){ if(sel==='All')return true; p=(p||'').toLowerCase();
+  if(sel==='Quarterly') return p.indexOf('quart')>=0||p.indexOf('qtr')>=0;
+  if(sel==='Half-yearly') return p.indexOf('half')>=0;
+  if(sel==='One-time') return p.indexOf('one-time')>=0||p.indexOf('one time')>=0;
+  return p.indexOf(sel.toLowerCase())>=0; }
+function calFiltered(){
+  var cat=$('cal_cat').value, per=$('cal_per').value, q=($('cal_q').value||'').toLowerCase().trim();
+  return CALDATA.filter(function(r){
+    if(cat!=='All'&&r.cat!==cat)return false;
+    if(!perMatch(r.period,per))return false;
+    if(q){ var hay=(r.act+' '+r.form+' '+r.sec+' '+r.law+' '+r.due+' '+r.remarks+' '+r.penalty).toLowerCase();
+      if(hay.indexOf(q)<0)return false; }
+    return true;
+  });
+}
+function renderCal(){
+  var rows=calFiltered();
+  var head='<thead><tr><th>#</th><th>Category</th><th>Compliance / Activity</th><th>Act &amp; Section</th><th>Form</th><th>Periodicity</th><th>Due Date</th><th>Penalty / Consequence</th><th>Remarks</th></tr></thead>';
+  var body=rows.map(function(r){ var col=CATCOLOR[r.cat]||{bg:'#eee',fg:'#333',bar:'#999'};
+    return '<tr>'+
+      '<td style="border-left:4px solid '+col.bar+'">'+esc(r.sno)+'</td>'+
+      '<td><span class="catbadge" style="background:'+col.bg+';color:'+col.fg+'">'+esc(r.cat)+'</span></td>'+
+      '<td>'+esc(r.act)+'</td>'+
+      '<td>'+esc(r.law)+(r.sec?'<br><small>'+esc(r.sec)+'</small>':'')+'</td>'+
+      '<td class="c-form">'+esc(r.form)+'</td>'+
+      '<td>'+esc(r.period)+'</td>'+
+      '<td class="c-due">'+esc(r.due)+'</td>'+
+      '<td>'+esc(r.penalty)+'</td>'+
+      '<td>'+esc(r.remarks)+'</td></tr>'; }).join('');
+  if(!rows.length) body='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:26px">No items match the filters.</td></tr>';
+  $('cal_tbl').innerHTML=head+'<tbody>'+body+'</tbody>';
+  $('cal_count').textContent='Showing '+rows.length+' of '+CALDATA.length;
+}
+function exportCal(){
+  var rows=calFiltered();
+  var head=['S.No','Category','Compliance / Activity','Act / Rules','Section / Rule / Reg.','Form','Periodicity','Due Date (recurring)','Penalty / Consequence','Remarks'];
+  var aoa=[['ANNUAL STATUTORY COMPLIANCE CALENDAR — INDIA'],
+           ['MS Associates, Practising Company Secretaries, Coimbatore'],[],head];
+  rows.forEach(function(r){aoa.push([r.sno,r.cat,r.act,r.law,r.sec,r.form,r.period,r.due,r.penalty,r.remarks]);});
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:6},{wch:12},{wch:32},{wch:22},{wch:20},{wch:26},{wch:18},{wch:34},{wch:46},{wch:34}];
+  var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Compliance Calendar');
+  XLSX.writeFile(wb,'Compliance_Calendar.xlsx'); toast('Calendar exported to Excel.');
+}
+function initCal(){
+  $('cal_cat').innerHTML=['All'].concat(Object.keys(CATCOLOR)).map(function(c){return '<option>'+c+'</option>';}).join('');
+  $('cal_per').innerHTML=['All','Annual','Quarterly','Monthly','Half-yearly','Event','One-time'].map(function(c){return '<option>'+c+'</option>';}).join('');
+  $('cal_legend').innerHTML=Object.keys(CATCOLOR).map(function(c){var col=CATCOLOR[c];
+    return '<span class="k"><span class="sw" style="background:'+col.bar+'"></span>'+esc(c)+'</span>';}).join('');
+  var caveats=CALNOTES.filter(function(n){return /^\d+\./.test(n);});
+  $('cal_notes').innerHTML='<p>Due dates are the recurring annual pattern; where a date falls on a holiday, the next working day applies. ROC dates assume a 30-Sep AGM for a 31-Mar year-end.</p><ol>'+
+    caveats.map(function(n){return '<li>'+esc(n.replace(/^\d+\.\s*/,''))+'</li>';}).join('')+'</ol>';
+  $('cal_cat').addEventListener('change',renderCal);
+  $('cal_per').addEventListener('change',renderCal);
+  $('cal_q').addEventListener('input',renderCal);
+  $('cal_xls').addEventListener('click',exportCal);
+  renderCal();
+}
+initCal();
+
 </script>
 </body>
 </html>
