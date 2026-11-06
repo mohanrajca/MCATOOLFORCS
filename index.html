@@ -248,6 +248,20 @@ details.notes ol{padding-left:20px}details.notes li{margin:6px 0;text-align:left
       <div id="profile"><div class="placeholder">Load a sheet or enter details to see the extracted profile here.</div></div>
     </div>
   </div>
+  <div class="card" style="margin-top:20px">
+    <h2 class="sec">3 · Financials &amp; annexures (for Board's Report &amp; Auditor's Report)</h2>
+    <div class="grid2">
+      <div>
+        <div class="drop" id="findrop">
+          <div class="big">Drop the Financials Input Excel here</div>
+          <div class="sm">or click to choose · use the MS Associates financials template · read in your browser only</div>
+          <input type="file" id="finfile" accept=".xlsx,.xls" style="display:none">
+        </div>
+        <div class="hint" style="margin-top:8px">Fill the template (P&amp;L, Balance Sheet, AOC-2, CSR, Subsidiaries), then upload here. The figures flow into the Board's Report, Auditor's Report and annexures under "Financial Reporting" in the Generate Documents tab.</div>
+      </div>
+      <div id="finsummary"><div class="placeholder">No financials loaded — reports will show blanks you can fill in Word.</div></div>
+    </div>
+  </div>
 </section>
 
 <!-- ===================== DOCS ===================== -->
@@ -352,7 +366,7 @@ function readWorkbook(ab){
   var wb=XLSX.read(ab,{type:'array'});
   var data={directors:[],charges:[]};
   wb.SheetNames.forEach(function(name){
-    var ws=wb.Sheets[name]; var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+    var ws=wb.Sheets[name]; if(ws['!ref']){var _g=XLSX.utils.decode_range(ws['!ref']);_g.s.c=0;_g.s.r=0;ws['!ref']=XLSX.utils.encode_range(_g);} var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
     var ln=name.toLowerCase();
     if(ln.indexOf('master')>=0){
       rows.forEach(function(r){ var k=(r[0]||'').toString().trim(); var v=(r[1]||'').toString().trim();
@@ -1016,6 +1030,212 @@ function initCal(){
   renderCal();
 }
 initCal();
+
+/* ============================ FINANCIALS & REPORTS ============================ */
+var FIN=null;
+function readFinWorkbook(ab){
+  var wb=XLSX.read(ab,{type:'array'});
+  var fin={fy:'',pfy:'',amt:'Rs.',fig:{},narr:{},aoc2:[],csr:{},subs:[]};
+  wb.SheetNames.forEach(function(name){
+    var ws=wb.Sheets[name]; if(ws['!ref']){var _g=XLSX.utils.decode_range(ws['!ref']);_g.s.c=0;_g.s.r=0;ws['!ref']=XLSX.utils.encode_range(_g);} var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+    var ln=name.toLowerCase();
+    if(ln.indexOf('financ')>=0){
+      rows.forEach(function(r){ var k=(r[1]||'').toString().trim(); if(!k)return;
+        var cy=(r[2]||'').toString().trim(), py=(r[3]||'').toString().trim(), kl=k.toLowerCase();
+        if(kl.indexOf('financial year ended')>=0 && kl.indexOf('previous')<0) fin.fy=cy;
+        else if(kl.indexOf('previous financial year')>=0) fin.pfy=cy;
+        else if(kl.indexOf('amounts are in')>=0) fin.amt=cy||'Rs.';
+        else { fin.fig[kl]={cy:cy,py:py}; fin.narr[kl]=cy; } });
+    } else if(ln.indexOf('aoc')>=0){ var s=false;
+      rows.forEach(function(r){ var a=(r[1]||'').toString().trim();
+        if(/related party/i.test(a)){s=true;return;}
+        if(s && a && !/leave blank/i.test(a)) fin.aoc2.push({party:a,rel:(r[2]||'').toString().trim(),nature:(r[3]||'').toString().trim(),dur:(r[4]||'').toString().trim(),terms:(r[5]||'').toString().trim(),approval:(r[6]||'').toString().trim(),adv:(r[7]||'').toString().trim()}); });
+    } else if(ln.indexOf('csr')>=0){
+      rows.forEach(function(r){ var k=(r[1]||'').toString().trim(); if(k) fin.csr[k.toLowerCase()]=(r[2]||'').toString().trim(); });
+    } else if(ln.indexOf('subsid')>=0){ var s2=false;
+      rows.forEach(function(r){ var a=(r[1]||'').toString().trim();
+        if(/^name$/i.test(a)){s2=true;return;}
+        if(s2 && a && !/leave blank/i.test(a)) fin.subs.push({name:a,cin:(r[2]||'').toString().trim(),pct:(r[3]||'').toString().trim(),cap:(r[4]||'').toString().trim(),res:(r[5]||'').toString().trim(),assets:(r[6]||'').toString().trim(),turn:(r[7]||'').toString().trim(),pbt:(r[8]||'').toString().trim(),tax:(r[9]||'').toString().trim(),pat:(r[10]||'').toString().trim()}); });
+    }
+  });
+  return fin;
+}
+function fnum(label){ var k=label.toLowerCase(); return (FIN&&FIN.fig&&FIN.fig[k])?FIN.fig[k]:{cy:'',py:''}; }
+function fnarr(label){ var k=label.toLowerCase(); return (FIN&&FIN.narr&&FIN.narr[k]!=null)?FIN.narr[k]:''; }
+function csrv(label){ var k=label.toLowerCase(); return (FIN&&FIN.csr&&FIN.csr[k]!=null)?FIN.csr[k]:''; }
+function famt(){ return (FIN&&FIN.amt)||'Rs.'; }
+function BL(v){ return (v===''||v==null)?'________':esc(v); }
+function finFy(f){ return f.fyend?fmtLong(parseDate(f.fyend)):((FIN&&FIN.fy)?('the financial year ended '+esc(FIN.fy)).replace('the financial year ended ',''): '__________'); }
+function finFyShort(f){ if(f&&f.fyend){var d=parseDate(f.fyend);return d?fmt(d):f.fyend;} return (FIN&&FIN.fy)?FIN.fy:(C&&C.bsDate?C.bsDate:'31-March-____'); }
+function plTable(){
+  var ls=['Revenue from Operations','Other Income','Total Income','Total Expenses','EBITDA','Depreciation & Amortisation','Finance Costs','Profit Before Tax','Current Tax','Deferred Tax','Profit After Tax'];
+  var body=ls.map(function(l){var f=fnum(l);return '<tr><td>'+esc(l)+'</td><td style="text-align:right">'+esc(f.cy||'—')+'</td><td style="text-align:right">'+esc(f.py||'—')+'</td></tr>';}).join('');
+  return '<table class="gt"><tr><th>Particulars ('+esc(famt())+')</th><th>Current Year</th><th>Previous Year</th></tr>'+body+'</table>';
+}
+function renderFinSummary(){
+  if(!FIN){return;}
+  var pat=fnum('Profit After Tax'), rev=fnum('Revenue from Operations');
+  $('finsummary').innerHTML='<div class="kv">'+
+    row('FY ended',FIN.fy)+row('Previous FY',FIN.pfy)+row('Amounts in',FIN.amt)+
+    row('Revenue (CY)',rev.cy)+row('Profit After Tax (CY)',pat.cy)+
+    row('Dividend / share',fnarr('Dividend recommended (per share, Rs.)'))+
+    row('AOC-2 transactions',FIN.aoc2.length||'Nil')+
+    row('Subsidiaries (AOC-1)',FIN.subs.length||'Nil')+
+    row('CSR applicable',csrv('CSR applicable (Yes/No)'))+'</div>'+
+    '<div class="hint" style="margin-top:8px">Loaded. Open the Generate Documents tab → "Financial Reporting" group.</div>';
+}
+
+/* ---- new catalog templates ---- */
+CATALOG.push(
+{id:'boardreport',name:"Board's Report (Sec. 134)",cat:'Financial Reporting (Sec 134 / Audit)',desc:'Full Directors\u2019 / Board\u2019s Report with financial results',
+ fields:[fD('fyend','Financial year ended'),fT('divps','Dividend per share (Rs.)'),fT('divamt','Dividend total (Rs.)'),fT('bm','No. of Board Meetings held'),
+   fS('nature','Change in nature of business',['No','Yes']),fTA('material','Material changes after FY end (blank = none)'),fTA('state','State of affairs / operations review'),
+   fT('auditor','Statutory Auditor'),fT('frn','Auditor FRN')],
+ build:function(f){
+   var fy=finFyShort(f);
+   var divps=f.divps||fnarr('Dividend recommended (per share, Rs.)');
+   var divamt=f.divamt||fnarr('Dividend — total amount (Rs.)');
+   var bm=f.bm||fnarr('Number of Board Meetings held');
+   var state=f.state||fnarr('State of affairs / operations review (text)');
+   var aud=f.auditor||fnarr('Statutory Auditor — name / firm');
+   var frn=f.frn||fnarr('Auditor Firm Registration No. (FRN)');
+   var nature=(f.nature||fnarr('Change in nature of business (Yes/No)')||'No');
+   var csrOn=/^y/i.test(csrv('CSR applicable (Yes/No)')||fnarr('CSR applicable (Yes/No)'));
+   var secOn=/^y/i.test(fnarr('Secretarial audit applicable (Yes/No)'));
+   var subOn=(FIN&&FIN.subs&&FIN.subs.length)|| /^y/i.test(fnarr('Company has subsidiaries (Yes/No)'));
+   var dep=/^y/i.test(fnarr('Deposits accepted u/Ch. V (Yes/No)'));
+   var b='';
+   b+='<p class="cl">Dear Members,</p>';
+   b+='<p>Your Directors have pleasure in presenting the Annual Report of the Company together with the Audited Financial Statements for the financial year ended '+BL(fy)+'.</p>';
+   b+='<p class="cl"><b>1. FINANCIAL RESULTS</b></p>'+plTable();
+   b+='<p class="cl"><b>2. STATE OF AFFAIRS / OPERATIONS</b></p><p>'+(state?esc(state):'[Brief review of operations and the state of the Company\u2019s affairs during the year.]')+'</p>';
+   b+='<p class="cl"><b>3. DIVIDEND</b></p><p>'+(divps?('Your Directors recommend a dividend of Rs. '+esc(divps)+' per equity share'+(divamt?(', aggregating Rs. '+esc(divamt)):'')+' for the year, subject to approval of the Members at the ensuing Annual General Meeting.'):'The Directors do not recommend any dividend for the year / [state recommendation].')+'</p>';
+   b+='<p class="cl"><b>4. TRANSFER TO RESERVES</b></p><p>'+(fnum('Transfer to General Reserve').cy?('An amount of Rs. '+esc(fnum('Transfer to General Reserve').cy)+' has been transferred to the General Reserve.'):'The Board does not propose to transfer any amount to the General Reserve.')+'</p>';
+   b+='<p class="cl"><b>5. CHANGE IN NATURE OF BUSINESS</b></p><p>'+(/^y/i.test(nature)?'[Describe the change in the nature of business during the year.]':'There has been no change in the nature of business of the Company during the year.')+'</p>';
+   b+='<p class="cl"><b>6. MATERIAL CHANGES AFTER THE FINANCIAL YEAR</b></p><p>'+(f.material?esc(f.material):'There have been no material changes and commitments affecting the financial position of the Company between the end of the financial year and the date of this Report.')+'</p>';
+   b+='<p class="cl"><b>7. DIRECTORS &amp; KEY MANAGERIAL PERSONNEL</b></p><p>The Board of the Company comprises: '+esc(dirListSentence()||'[Directors]')+'. '+
+      'In accordance with the provisions of the Act and the Articles of Association, [name] retires by rotation at the ensuing Annual General Meeting and, being eligible, offers himself/herself for re-appointment.</p>';
+   b+='<p class="cl"><b>8. NUMBER OF BOARD MEETINGS</b></p><p>'+BL(bm)+' meeting(s) of the Board of Directors were held during the financial year, in compliance with Section 173 of the Act and Secretarial Standard-1.</p>';
+   b+='<p class="cl"><b>9. DIRECTORS\u2019 RESPONSIBILITY STATEMENT (Section 134(3)(c) &amp; (5))</b></p><p>Pursuant to Section 134(5) of the Companies Act, 2013, your Directors state that:</p>'+
+      '<ol type="a"><li>in the preparation of the annual accounts for the year ended '+BL(fy)+', the applicable accounting standards have been followed and there are no material departures;</li>'+
+      '<li>such accounting policies have been selected and applied consistently and judgements and estimates made that are reasonable and prudent so as to give a true and fair view of the state of affairs of the Company and of the profit/loss of the Company for that period;</li>'+
+      '<li>proper and sufficient care has been taken for the maintenance of adequate accounting records in accordance with the provisions of the Act for safeguarding the assets of the Company and for preventing and detecting fraud and other irregularities;</li>'+
+      '<li>the annual accounts have been prepared on a going concern basis;</li>'+
+      '<li>proper systems have been devised to ensure compliance with the provisions of all applicable laws and that such systems were adequate and operating effectively.</li></ol>';
+   b+='<p class="cl"><b>10. STATUTORY AUDITORS</b></p><p>'+(aud?('M/s '+esc(aud)+(frn?(' (FRN: '+esc(frn)+')'):'')+', Chartered Accountants, are the Statutory Auditors of the Company. The Auditors\u2019 Report does not contain any qualification, reservation or adverse remark.'):'[Statutory Auditor details.] The Auditors\u2019 Report does not contain any qualification, reservation or adverse remark.')+'</p>';
+   if(secOn) b+='<p class="cl"><b>11. SECRETARIAL AUDIT</b></p><p>Pursuant to Section 204 of the Act, the Secretarial Audit Report in Form MR-3 is annexed. The report does not contain any qualification, reservation or adverse remark.</p>';
+   if(csrOn) b+='<p class="cl"><b>12. CORPORATE SOCIAL RESPONSIBILITY (Sec. 135)</b></p><p>The Company has constituted a CSR Committee and framed a CSR Policy. The Annual Report on CSR activities is annexed to this Report.</p>';
+   b+='<p class="cl"><b>13. RELATED PARTY TRANSACTIONS</b></p><p>'+((FIN&&FIN.aoc2&&FIN.aoc2.length)?'Particulars of contracts/arrangements with related parties under Section 188 are given in Form AOC-2, annexed to this Report.':'All contracts/arrangements with related parties during the year were in the ordinary course of business and on an arm\u2019s length basis; accordingly, Form AOC-2 is not applicable (Nil).')+'</p>';
+   b+='<p class="cl"><b>14. CONSERVATION OF ENERGY, TECHNOLOGY ABSORPTION &amp; FOREIGN EXCHANGE</b></p><p>The particulars required under Section 134(3)(m) read with Rule 8(3) of the Companies (Accounts) Rules, 2014 are annexed to this Report.</p>';
+   b+='<p class="cl"><b>15. ANNUAL RETURN</b></p><p>Pursuant to Section 92(3) read with Section 134(3)(a), the Annual Return as on '+BL(fy)+' is available on the Company\u2019s website / will be filed with the Registrar in Form MGT-7 / MGT-7A.</p>';
+   b+='<p class="cl"><b>16. DEPOSITS</b></p><p>'+(dep?'[Particulars of deposits accepted under Chapter V of the Act.]':'The Company has neither accepted nor renewed any deposits within the meaning of Chapter V of the Act during the year.')+'</p>';
+   b+='<p class="cl"><b>17. PARTICULARS OF LOANS, GUARANTEES &amp; INVESTMENTS (Sec. 186)</b></p><p>Particulars of loans given, guarantees provided and investments made are disclosed in the notes to the Financial Statements.</p>';
+   b+='<p class="cl"><b>18. INTERNAL FINANCIAL CONTROLS</b></p><p>The Company has adequate internal financial controls commensurate with the size and nature of its business, which are operating effectively.</p>';
+   b+='<p class="cl"><b>19. RISK MANAGEMENT</b></p><p>The Company has a risk-management framework to identify, assess and mitigate key business risks.</p>';
+   b+='<p class="cl"><b>20. VIGIL MECHANISM / WHISTLE-BLOWER POLICY</b></p><p>[Applicable where required under Section 177(9). The Company has/does not have a vigil mechanism in place.]</p>';
+   b+='<p class="cl"><b>21. PREVENTION OF SEXUAL HARASSMENT (POSH Act, 2013)</b></p><p>The Company has complied with the provisions relating to the constitution of the Internal Committee under the POSH Act. No complaints were received during the year.</p>';
+   b+='<p class="cl"><b>22. GENERAL DISCLOSURES</b></p><p>No disclosure or reporting is required in respect of: issue of equity shares with differential rights / sweat equity / ESOP; significant or material orders passed by regulators or courts impacting going concern; fraud reported by auditors; or one-time settlement with banks \u2014 as there were no such transactions during the year, except as otherwise stated.</p>';
+   b+='<p class="cl"><b>23. ACKNOWLEDGEMENT</b></p><p>Your Directors place on record their appreciation for the continued support and co-operation of the Members, bankers, employees, customers, suppliers and regulatory authorities during the year.</p>';
+   return shell("BOARD\u2019S REPORT", b, f, 'board');
+ }},
+
+{id:'auditreport',name:'Independent Auditor\u2019s Report',cat:'Financial Reporting (Sec 134 / Audit)',desc:'Standard CA audit report (Ind AS / AS, Sec 143, CARO ref)',
+ fields:[fS('scope','Statements',['Standalone','Consolidated']),fS('frame','Framework',['Indian Accounting Standards (Ind AS), Sec 133','Accounting Standards, Sec 133']),
+   fS('opinion','Opinion',['Unmodified (true &amp; fair)','Qualified','Adverse','Disclaimer of opinion']),fD('fyend','Financial year ended'),
+   fT('firm','Audit firm'),fT('frn','Firm Reg. No. (FRN)'),fT('partner','Partner name'),fT('mno','Membership No.'),fT('udin','UDIN'),fT('place','Place'),fD('rdate','Report date')],
+ build:function(f){
+   var fy=finFyShort(f); var sc=(f.scope||'Standalone'); var scl=sc.toLowerCase();
+   var fr=f.frame||'Indian Accounting Standards (Ind AS), Sec 133';
+   var op=f.opinion||'Unmodified (true &amp; fair)';
+   var b='';
+   b+='<p class="cl">To the Members of <b>'+esc((C.name||'[COMPANY]').toUpperCase())+'</b></p>';
+   b+='<p class="cl"><b>Report on the Audit of the '+esc(sc)+' Financial Statements</b></p>';
+   b+='<p class="cl"><b>Opinion</b></p>';
+   b+='<p>We have audited the '+esc(scl)+' financial statements of '+esc(C.name||'the Company')+' ("the Company"), which comprise the Balance Sheet as at '+BL(fy)+', the Statement of Profit and Loss, the Statement of Changes in Equity and the Statement of Cash Flows for the year then ended, and notes to the financial statements including a summary of significant accounting policies and other explanatory information.</p>';
+   if(op.indexOf('Unmodified')>=0)
+     b+='<p>In our opinion and to the best of our information and according to the explanations given to us, the aforesaid '+esc(scl)+' financial statements give the information required by the Companies Act, 2013 ("the Act") in the manner so required and give a true and fair view in conformity with the '+esc(fr.split(',')[0])+' and other accounting principles generally accepted in India, of the state of affairs of the Company as at '+BL(fy)+', and its profit/loss, changes in equity and its cash flows for the year ended on that date.</p>';
+   else
+     b+='<p>[Modified opinion \u2014 '+esc(op)+'. Set out the basis for the qualification/adverse/disclaimer and its effect on the financial statements.]</p>';
+   b+='<p class="cl"><b>Basis for Opinion</b></p><p>We conducted our audit in accordance with the Standards on Auditing (SAs) specified under Section 143(10) of the Act. Our responsibilities under those Standards are further described in the Auditor\u2019s Responsibilities section of our report. We are independent of the Company in accordance with the Code of Ethics issued by the Institute of Chartered Accountants of India together with the ethical requirements relevant to our audit, and we have fulfilled our other ethical responsibilities in accordance with these requirements. We believe that the audit evidence we have obtained is sufficient and appropriate to provide a basis for our opinion.</p>';
+   b+='<p class="cl"><b>Responsibility of Management for the Financial Statements</b></p><p>The Company\u2019s Board of Directors is responsible for the matters stated in Section 134(5) of the Act with respect to the preparation of these '+esc(scl)+' financial statements that give a true and fair view of the financial position, financial performance, changes in equity and cash flows of the Company in accordance with the accounting principles generally accepted in India. This responsibility also includes maintenance of adequate accounting records; safeguarding the assets; preventing and detecting frauds and other irregularities; selection and application of appropriate accounting policies; making judgements and estimates that are reasonable and prudent; and design, implementation and maintenance of adequate internal financial controls operating effectively for ensuring the accuracy and completeness of the accounting records. In preparing the financial statements, management is responsible for assessing the Company\u2019s ability to continue as a going concern and using the going concern basis of accounting unless management intends to liquidate the Company or cease operations. The Board of Directors is also responsible for overseeing the Company\u2019s financial reporting process.</p>';
+   b+='<p class="cl"><b>Auditor\u2019s Responsibilities for the Audit of the Financial Statements</b></p><p>Our objectives are to obtain reasonable assurance about whether the financial statements as a whole are free from material misstatement, whether due to fraud or error, and to issue an auditor\u2019s report that includes our opinion. Reasonable assurance is a high level of assurance but is not a guarantee that an audit conducted in accordance with SAs will always detect a material misstatement when it exists. As part of an audit in accordance with SAs, we exercise professional judgement and maintain professional scepticism throughout the audit. We also evaluate the appropriateness of accounting policies used, the reasonableness of accounting estimates, the going-concern basis of accounting, and the overall presentation of the financial statements, and we communicate with those charged with governance regarding the planned scope, timing and significant audit findings.</p>';
+   b+='<p class="cl"><b>Report on Other Legal and Regulatory Requirements</b></p>';
+   b+='<p>As required by the Companies (Auditor\u2019s Report) Order, 2020 ("the Order") issued under Section 143(11) of the Act, we give in "Annexure A" a statement on the matters specified in paragraphs 3 and 4 of the Order, to the extent applicable.</p>';
+   b+='<p>As required by Section 143(3) of the Act, we report that:</p>'+
+     '<ol type="a"><li>we have sought and obtained all the information and explanations which to the best of our knowledge and belief were necessary for the purposes of our audit;</li>'+
+     '<li>in our opinion, proper books of account as required by law have been kept by the Company so far as it appears from our examination of those books;</li>'+
+     '<li>the Balance Sheet, the Statement of Profit and Loss, the Statement of Changes in Equity and the Cash Flow Statement dealt with by this Report are in agreement with the books of account;</li>'+
+     '<li>in our opinion, the aforesaid financial statements comply with the Accounting Standards specified under Section 133 of the Act;</li>'+
+     '<li>on the basis of the written representations received from the directors as on '+BL(fy)+' and taken on record by the Board, none of the directors is disqualified as on '+BL(fy)+' from being appointed as a director in terms of Section 164(2) of the Act;</li>'+
+     '<li>with respect to the adequacy of the internal financial controls over financial reporting and the operating effectiveness of such controls, refer to our separate Report in "Annexure B";</li>'+
+     '<li>with respect to the other matters to be included in the Auditor\u2019s Report in accordance with Rule 11 of the Companies (Audit and Auditors) Rules, 2014: (i) the Company has disclosed the impact, if any, of pending litigations on its financial position; (ii) the Company did not have any long-term contracts including derivative contracts for which there were material foreseeable losses; and (iii) there were no amounts required to be transferred to the Investor Education and Protection Fund.</li></ol>';
+   var sign='<table class="nb"><tr><td>Place: '+BL(f.place||cityFromAddress())+'<br>Date: '+(f.rdate?esc(fmt(parseDate(f.rdate))):'____________')+
+     (f.udin?('<br>UDIN: '+esc(f.udin)):'')+'</td>'+
+     '<td style="text-align:right">For '+BL(f.firm)+'<br>Chartered Accountants<br>'+(f.frn?('FRN: '+esc(f.frn)+'<br>'):'')+'<br><br>'+
+     '('+BL(f.partner)+')<br>Partner'+(f.mno?('<br>Membership No.: '+esc(f.mno)):'')+'</td></tr></table>';
+   return letterhead()+'<div class="doc-title">INDEPENDENT AUDITOR\u2019S REPORT</div>'+b+sign;
+ }},
+
+{id:'aoc2form',name:'Form AOC-2 (Related Party)',cat:'Financial Reporting (Sec 134 / Audit)',desc:'Sec 134(3)(h) / 188 — from uploaded AOC-2 data',
+ fields:[fD('rdate','Date')],
+ build:function(f){
+   var b='<p class="cl">Form No. AOC-2<br>(Pursuant to clause (h) of sub-section (3) of Section 134 of the Act and Rule 8(2) of the Companies (Accounts) Rules, 2014)</p>';
+   b+='<p>Particulars of contracts/arrangements entered into by the Company with related parties referred to in sub-section (1) of Section 188:</p>';
+   b+='<p class="cl"><b>1. Contracts or arrangements not at arm\u2019s length basis:</b> Not Applicable</p>';
+   if(FIN&&FIN.aoc2&&FIN.aoc2.length){
+     b+='<p class="cl"><b>2. Material contracts or arrangements at arm\u2019s length basis:</b></p>';
+     b+='<table class="gt"><tr><th>Related party &amp; relationship</th><th>Nature of contract</th><th>Duration</th><th>Salient terms / value</th><th>Board approval date</th><th>Advances</th></tr>'+
+       FIN.aoc2.map(function(x){return '<tr><td>'+esc(x.party)+(x.rel?('<br><small>'+esc(x.rel)+'</small>'):'')+'</td><td>'+esc(x.nature)+'</td><td>'+esc(x.dur)+'</td><td>'+esc(x.terms)+'</td><td>'+esc(x.approval)+'</td><td>'+esc(x.adv||'Nil')+'</td></tr>';}).join('')+'</table>';
+   } else {
+     b+='<p class="cl"><b>2. Material contracts or arrangements at arm\u2019s length basis:</b> Nil</p><p>All transactions with related parties during the year were in the ordinary course of business and on an arm\u2019s length basis.</p>';
+   }
+   return shell('FORM AOC-2', b, f, 'board');
+ }},
+
+{id:'csrreport',name:'CSR Annexure (Sec. 135)',cat:'Financial Reporting (Sec 134 / Audit)',desc:'Annual Report on CSR activities — from uploaded CSR data',
+ fields:[fD('fyend','Financial year')],
+ build:function(f){
+   var fy=finFyShort(f);
+   var b='<p class="cl"><b>ANNUAL REPORT ON CSR ACTIVITIES</b><br>(Pursuant to Section 135 of the Act read with the Companies (CSR Policy) Rules, 2014)</p>';
+   b+='<p class="cl">For the financial year '+BL(fy)+'</p>';
+   b+='<table class="gt"><tr><td>Brief outline of CSR Policy / projects</td><td>'+BL(csrv('Brief on CSR Policy / projects (text)'))+'</td></tr>'+
+     '<tr><td>CSR Committee</td><td>'+esc([csrv('CSR Committee — Member 1'),csrv('CSR Committee — Member 2'),csrv('CSR Committee — Member 3')].filter(Boolean).join(', ')||'________')+'</td></tr>'+
+     '<tr><td>Average net profit (last 3 FYs) (Sec 198)</td><td>Rs. '+BL(csrv('Average net profit (last 3 FYs) (Rs.)'))+'</td></tr>'+
+     '<tr><td>Prescribed CSR expenditure (2%)</td><td>Rs. '+BL(csrv('2% CSR obligation for the year (Rs.)'))+'</td></tr>'+
+     '<tr><td>Amount spent during the year</td><td>Rs. '+BL(csrv('Amount spent during the year (Rs.)'))+'</td></tr>'+
+     '<tr><td>Amount unspent, if any</td><td>Rs. '+BL(csrv('Amount unspent (Rs.)'))+'</td></tr></table>';
+   b+='<p>The CSR Committee confirms that the implementation and monitoring of the CSR Policy is in compliance with the CSR objectives and Policy of the Company.</p>';
+   return shell('ANNEXURE \u2014 CSR REPORT', b, f, 'board');
+ }},
+
+{id:'energyforex',name:'Energy / Technology / Forex Annexure',cat:'Financial Reporting (Sec 134 / Audit)',desc:'Sec 134(3)(m) annexure',
+ fields:[fD('fyend','Financial year'),fTA('energy','Steps taken on conservation of energy'),fTA('tech','Technology absorption'),fT('forexin','Foreign exchange earned (Rs.)'),fT('forexout','Foreign exchange outgo (Rs.)')],
+ build:function(f){
+   var b='<p class="cl">(Pursuant to Section 134(3)(m) of the Act read with Rule 8(3) of the Companies (Accounts) Rules, 2014)</p>';
+   b+='<p class="cl"><b>A. Conservation of Energy</b></p><p>'+(f.energy?esc(f.energy):'[Steps taken / impact on conservation of energy; steps taken for utilising alternate sources of energy; capital investment on energy-conservation equipment.]')+'</p>';
+   b+='<p class="cl"><b>B. Technology Absorption</b></p><p>'+(f.tech?esc(f.tech):'[Efforts made towards technology absorption; benefits derived; details of imported technology; expenditure on R&amp;D.]')+'</p>';
+   b+='<p class="cl"><b>C. Foreign Exchange Earnings and Outgo</b></p><table class="gt"><tr><th>Particulars</th><th>Amount</th></tr>'+
+     '<tr><td>Foreign exchange earned (actual inflows)</td><td>Rs. '+BL(f.forexin)+'</td></tr>'+
+     '<tr><td>Foreign exchange outgo (actual outflows)</td><td>Rs. '+BL(f.forexout)+'</td></tr></table>';
+   return shell('ANNEXURE \u2014 CONSERVATION OF ENERGY, TECHNOLOGY ABSORPTION &amp; FOREIGN EXCHANGE', b, f, 'board');
+ }}
+);
+
+/* wire financials dropzone */
+(function(){
+  var fd=$('findrop'), ff=$('finfile');
+  if(!fd)return;
+  fd.addEventListener('click',function(){ff.click();});
+  fd.addEventListener('dragover',function(e){e.preventDefault();fd.classList.add('drag');});
+  fd.addEventListener('dragleave',function(){fd.classList.remove('drag');});
+  fd.addEventListener('drop',function(e){e.preventDefault();fd.classList.remove('drag'); if(e.dataTransfer.files[0])handleFin(e.dataTransfer.files[0]);});
+  ff.addEventListener('change',function(){ if(ff.files[0])handleFin(ff.files[0]); });
+  function handleFin(file){ var r=new FileReader();
+    r.onload=function(){ try{ FIN=readFinWorkbook(new Uint8Array(r.result)); renderFinSummary(); if(curDoc)buildForm(); toast('Financials loaded.'); }
+      catch(e){ toast('Could not read financials: '+e.message); } };
+    r.readAsArrayBuffer(file); }
+})();
+renderCatalog();
 
 </script>
 </body>
